@@ -26,6 +26,22 @@ fn main() {
         process::exit(1);
     }
 
+    for (card_name, quantity) in deck_contents {
+        let mut needed_quantity = 0;
+
+        if collection_contents.contains_key(&card_name) {
+            let owned_quantity = *collection_contents.get_mut(&card_name).unwrap();
+            needed_quantity = owned_quantity as i32 - quantity as i32;
+        } else {
+            needed_quantity = quantity as i32;
+            println!("Missing {needed_quantity} {card_name}")
+        }
+
+        if needed_quantity < 0 {
+            println!("Missing {} {}", needed_quantity.abs(), card_name)
+        }
+    }
+
 }
 
 fn load_deck_file(file_path: &str, contents: &mut HashMap<String, u32>) {
