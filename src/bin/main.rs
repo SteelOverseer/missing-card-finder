@@ -3,7 +3,7 @@ use regex::Regex;
 use substring::Substring;
 use walkdir::{DirEntry, WalkDir};
 
-static EXCLUDE_FORMATS: [&str; 3] = ["Standard", "Legacy", "Frontier"];
+static EXCLUDE_FORMATS: [&str; 4] = ["Standard", "Legacy", "Frontier", "Modern"];
 static TRACKED_MODERN_DECKS: [&str; 5] = ["Affinity.dec", "DeathsShadow-Grixis.dec", "GiftsStorm.dec", "Spirits-UW.dec", "Tron-G.dec"];
 static EXCLUDED_CARDS: [&str; 20] = [
     "Plains", 
@@ -30,7 +30,7 @@ static EXCLUDED_CARDS: [&str; 20] = [
 
 fn main() -> Result<(), Box<dyn Error>> {
     const COLLECTION_PATH: &str = "C:\\Users\\Doug\\Documents\\Magic\\collection.csv";
-    const OUTPUT_PATH: &str = "C:\\Users\\Doug\\Documents\\Magic\\MissingCards.txt";
+    const OUTPUT_PATH: &str = "C:\\Users\\Doug\\Documents\\Magic\\MissingCommanderCards.txt";
    
     let mut deck_contents:HashMap<String, u32> = HashMap::new();
     let mut collection_contents:HashMap<String, u32> = HashMap::new();
