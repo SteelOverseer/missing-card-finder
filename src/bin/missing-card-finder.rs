@@ -37,8 +37,8 @@ struct CollectionCard {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    const COLLECTION_PATH: &str = "C:\\Users\\Doug\\Documents\\Magic\\collection.csv";
-    const OUTPUT_PATH: &str = "C:\\Users\\Doug\\Documents\\Magic\\MissingCards.txt";
+    const COLLECTION_PATH: &str = "D:\\Magic\\collection.csv";
+    const OUTPUT_PATH: &str = "D:\\Magic\\MissingCards.txt";
    
     let mut collection_contents:HashMap<String, CollectionCard> = HashMap::new();
 
@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn load_deck_file<'a>(format: &'a str, deck: &'a str) -> HashMap<String, u64> {
-    let file_path = format!("C:\\Users\\Doug\\Documents\\Magic\\Decks\\{format}\\{deck}.dec");
+    let file_path = format!("D:\\Magic\\Decks\\{format}\\{deck}.dec");
     let file = File::open(file_path).expect("Could not read file {file_path}");
     let reader = BufReader::new(file);
     let line_reg = Regex::new(r"/").unwrap(); // .dec files have lines that start with //, i dont need these lines
