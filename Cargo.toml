@@ -1,9 +1,11 @@
 [package]
-name = "missing-card-finder"
+name = "missingcardfinder"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+path = "src/main.rs"
+name = "missingcardfinder"
 
 [dependencies]
 regex = "1"
@@ -12,3 +14,5 @@ csv = "1.1"
 walkdir = "2"
 rust_decimal = "1.28.0"
 anyhow = "1.0.68"
+config = "0.13.3"
+serde = "1.0.164"
