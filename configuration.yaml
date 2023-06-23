@@ -1,0 +1,46 @@
+collection_path: "D:\\Magic\\collection.csv"
+output_path: "D:\\Magic\\MissingCards.txt"
+decks_path: "D:\\Magic\\Decks"
+tracked_formats:
+  - Modern
+  - Commander
+tracked_modern_decks: 
+  - Affinity
+  - DeathsShadow-Grixis
+  - GiftsStorm
+  - Spirits-UW
+  - Tron-G
+tracked_commander_decks: 
+  - Narset
+  - Neheb
+  - Rebels
+  - Dragons
+  - Arcades
+  - Stax
+  - GroupHug
+  - Squirrels
+  - Jhoira
+foil_decks: 
+  - Narset
+  - Affinity
+excluded_cards:
+  -  Plains
+  -  Island
+  -  Swamp
+  -  Mountain
+  -  Forest
+  -  Snow-Covered Plains
+  -  Snow-Covered Island
+  -  Snow-Covered Swamp
+  -  Snow-Covered Mountain
+  -  Snow-Covered Forest
+  -  Tundra
+  -  Taiga
+  -  Grim Monolith
+  -  Plateau
+  -  Scrubland
+  -  Bayou
+  -  Underground Sea
+  -  Savannah
+  -  Tropical Island
+  -  Volcanic Island
