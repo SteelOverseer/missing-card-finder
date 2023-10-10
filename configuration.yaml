@@ -1,3 +1,4 @@
+debug: false
 collection_path: "D:\\Magic\\collection.csv"
 output_path: "D:\\Magic\\MissingCards.txt"
 decks_path: "D:\\Magic\\Decks"

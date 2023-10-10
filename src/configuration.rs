@@ -7,7 +7,8 @@ pub struct Settings {
     pub tracked_modern_decks: Vec<String>,
     pub tracked_commander_decks: Vec<String>,
     pub foil_decks: Vec<String>,
-    pub excluded_cards: Vec<String>
+    pub excluded_cards: Vec<String>,
+    pub debug: bool
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

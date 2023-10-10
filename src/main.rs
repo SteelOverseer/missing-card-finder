@@ -43,6 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if needed_quantity > 0 {
                         writeln!(output_file, "{needed_quantity} {name}")?;
                     }
+
+                    if configuration.debug {
+                        writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
+                    }
                 }
             }
         } else if format == "Modern" {
@@ -61,8 +65,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if needed_quantity > 0 {
                         writeln!(output_file, "{needed_quantity} {name}")?;
                     }
+
+                    if configuration.debug {
+                        writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
+                    }
                 }
             }
+        }
+    }
+
+    if configuration.debug {
+        writeln!(output_file, "DEBUG-- COLLECTION CONTENTS")?;
+        for(cardname, card_info) in collection_contents {
+            let total = card_info.total_qty;
+            let foil = card_info.foil_qty;
+            let reg = card_info.reg_qty;
+
+            writeln!(output_file, "{cardname}: ALL {total}, FOIL {foil}, REG {reg}")?;
         }
     }
 
@@ -73,15 +92,22 @@ fn load_deck_file<'a>(format: &'a str, deck: &String, deck_path: &String, exclud
     let file_path = format!("{}\\{}\\{}.dec", deck_path, format, deck);
     let file = File::open(file_path).expect("Could not read file {file_path}");
     let reader = BufReader::new(file);
-    let line_reg = Regex::new(r"/").unwrap(); // .dec files have lines that start with //, i dont need these lines
+    let line_reg = Regex::new(r"^/").unwrap(); // .dec files have lines that start with /, i dont need these lines
     let quantity_reg = Regex::new(r"\d+").unwrap();
+    let split_reg = Regex::new(r"/").unwrap();
     let mut deck_contents:HashMap<String, u64> = HashMap::new();
 
     for line in reader.lines().map(|line| line.unwrap().to_string()) {
         if !line_reg.is_match(&line) {
             let quantity_match = quantity_reg.find(&line).unwrap();
             let quantity = line.substring(quantity_match.start(), quantity_match.end()).parse::<u64>().unwrap();
-            let card_name = line.substring(quantity_match.end() + 1, line.len()).to_string();
+            let mut card_name = line.substring(quantity_match.end() + 1, line.len()).to_string();
+
+            //Collection only has front name for cards split with "//"
+            if card_name.contains("/") {
+                let split_match = split_reg.find(&card_name).unwrap();
+                card_name = card_name.substring(0, split_match.start() - 1).to_string();
+            }
 
             set_hash(card_name, quantity, &mut deck_contents, &excluded_cards);
         }
