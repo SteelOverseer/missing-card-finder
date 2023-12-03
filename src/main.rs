@@ -120,28 +120,28 @@ fn process_deck(card_name: &String, quantity: &u64, deck: &String, collection_co
     let needed_quantity;
     let owned_quantity;
 
-    if collection_contents.contains_key(card_name.as_str()) {
+    if collection_contents.contains_key(card_name.to_ascii_lowercase().as_str()) {
         if foil_decks.contains(&deck) {
-            owned_quantity = collection_contents.get_mut(card_name.as_str()).unwrap().foil_qty;
+            owned_quantity = collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty;
 
             if owned_quantity > 0 {
-                if quantity > &collection_contents.get_mut(card_name.as_str()).unwrap().foil_qty {
-                    collection_contents.get_mut(card_name.as_str()).unwrap().foil_qty = 0;
+                if quantity > &collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty {
+                    collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty = 0;
                 } else {
-                    collection_contents.get_mut(card_name.as_str()).unwrap().foil_qty -= quantity;
+                    collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty -= quantity;
                 }
             }
         } else {
-            owned_quantity = collection_contents.get_mut(card_name.as_str()).unwrap().total_qty;
+            owned_quantity = collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty;
         }
         
         needed_quantity = owned_quantity as i32 - *quantity as i32;
 
         if owned_quantity > 0 {
-            if quantity > &collection_contents.get_mut(card_name.as_str()).unwrap().total_qty {
-                collection_contents.get_mut(card_name.as_str()).unwrap().total_qty = 0
+            if quantity > &collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty {
+                collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty = 0
             } else {
-                collection_contents.get_mut(card_name.as_str()).unwrap().total_qty -= quantity;
+                collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty -= quantity;
             }
         }
 
@@ -166,7 +166,7 @@ fn load_collection_file(file_path: &str, contents: &mut HashMap<String, Collecti
         let total_quantity = record[0].parse::<u64>().unwrap();
         let regular_quantity = record[1].parse::<u64>().unwrap();
         let foil_quantity = record[2].parse::<u64>().unwrap();
-        let card_name = record[3].split("//").next().unwrap().trim().to_string();
+        let card_name = record[3].split("//").next().unwrap().trim().to_string().to_ascii_lowercase();
         
         if !excluded_cards.contains(&card_name) {
             if contents.contains_key(&card_name) {
