@@ -1,4 +1,4 @@
-use std::{fs::{File, self}, io::{BufReader, BufRead, Write}, collections::{HashMap, BTreeMap}, error::Error, process, path::Path};
+use std::{fs::File, io::{BufReader, BufRead, Write}, collections::{HashMap, BTreeMap}, error::Error, process, path::Path};
 mod configuration;
 
 #[derive(Debug)]
@@ -19,10 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         process::exit(1);
     }
 
-    // Create output file
-    if Path::new(&configuration.output_path).exists() {
-        fs::remove_file(&configuration.output_path).unwrap();
-    }
+    // File::create replaces any existing report
     let mut output_file = File::create(&configuration.output_path)?;
 
     for format in &configuration.tracked_formats {
@@ -43,13 +40,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if configuration.debug {
-        writeln!(output_file, "DEBUG-- COLLECTION CONTENTS")?;
+        eprintln!("DEBUG-- COLLECTION CONTENTS");
         for(cardname, card_info) in collection_contents {
             let total = card_info.total_qty;
             let foil = card_info.foil_qty;
             let reg = card_info.reg_qty;
 
-            writeln!(output_file, "{cardname}: ALL {total}, FOIL {foil}, REG {reg}")?;
+            eprintln!("{cardname}: ALL {total}, FOIL {foil}, REG {reg}");
         }
     }
 
@@ -79,7 +76,7 @@ fn report_deck(output_file: &mut File, format: &str, deck: &String, configuratio
         }
 
         if configuration.debug {
-            writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
+            eprintln!("DEBUG-- cardname: {card_name}, quantity: {quantity}");
         }
     }
 
