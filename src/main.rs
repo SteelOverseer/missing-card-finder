@@ -67,10 +67,10 @@ fn report_deck(output_file: &mut File, format: &str, deck: &String, configuratio
 
     let deck_contents = load_deck_file(format, deck, &configuration.decks_path, excluded_cards);
     for (card_name, quantity) in &deck_contents {
-        let (needed_quantity, name) = process_deck(card_name, quantity, deck, collection_contents, &configuration.foil_decks);
+        let needed_quantity = process_deck(card_name, *quantity, deck, collection_contents, &configuration.foil_decks);
 
         if needed_quantity > 0 {
-            writeln!(output_file, "{needed_quantity} {name}")?;
+            writeln!(output_file, "{needed_quantity} {card_name}")?;
         }
 
         if configuration.debug {
@@ -109,45 +109,26 @@ fn load_deck_file<'a>(format: &'a str, deck: &String, deck_path: &String, exclud
     return deck_contents;
 }
 
-fn process_deck(card_name: &String, quantity: &u64, deck: &String, collection_contents: &mut HashMap<String, CollectionCard>, foil_decks: &Vec<String>) -> (i32, String) {
-    let needed_quantity;
-    let owned_quantity;
+/// Takes a deck's copies of a card out of the collection and returns how many are still missing.
+fn process_deck(card_name: &str, quantity: u64, deck: &String, collection_contents: &mut HashMap<String, CollectionCard>, foil_decks: &Vec<String>) -> u64 {
+    let Some(card) = collection_contents.get_mut(&card_name.to_ascii_lowercase()) else {
+        return quantity;
+    };
 
-    if collection_contents.contains_key(card_name.to_ascii_lowercase().as_str()) {
-        if foil_decks.contains(&deck) {
-            owned_quantity = collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty;
+    let is_foil_deck = foil_decks.contains(deck);
+    let owned_quantity = if is_foil_deck { card.foil_qty } else { card.total_qty };
 
-            if owned_quantity > 0 {
-                if quantity > &collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty {
-                    collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty = 0;
-                } else {
-                    collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().foil_qty -= quantity;
-                }
-            }
-        } else {
-            owned_quantity = collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty;
-        }
-        
-        needed_quantity = owned_quantity as i32 - *quantity as i32;
-
-        if owned_quantity > 0 {
-            if quantity > &collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty {
-                collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty = 0
-            } else {
-                collection_contents.get_mut(card_name.to_ascii_lowercase().as_str()).unwrap().total_qty -= quantity;
-            }
-        }
-
-        if needed_quantity < 0 {
-            return (needed_quantity.abs(), card_name.to_string());
-        } else {
-            return (0, "There was an error with {card_name}".to_string())
-        }
-
-    } else {
-        needed_quantity = *quantity as i32;
-        return (needed_quantity, card_name.to_string());
+    if is_foil_deck {
+        card.foil_qty = card.foil_qty.saturating_sub(quantity);
     }
+
+    // Intentional: a foil deck with no foil copies leaves the regular copies alone,
+    // so they stay available for non-foil decks
+    if owned_quantity > 0 {
+        card.total_qty = card.total_qty.saturating_sub(quantity);
+    }
+
+    quantity.saturating_sub(owned_quantity)
 }
 
 fn load_collection_file(file_path: &str, contents: &mut HashMap<String, CollectionCard>, excluded_cards: &Vec<String>) -> Result<(), Box<dyn Error>> {
@@ -184,5 +165,86 @@ fn set_hash(card_name: String, quantity: u64, contents: &mut BTreeMap<String, u6
         *contents.get_mut(&card_name).unwrap() += quantity;
     } else {
         contents.insert(card_name, quantity);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn collection_with(name: &str, total_qty: u64, reg_qty: u64, foil_qty: u64) -> HashMap<String, CollectionCard> {
+        let mut collection = HashMap::new();
+        collection.insert(name.to_string(), CollectionCard { total_qty, reg_qty, foil_qty });
+        collection
+    }
+
+    fn foil_decks() -> Vec<String> {
+        vec!["FoilDeck".to_string()]
+    }
+
+    #[test]
+    fn card_not_in_collection_is_fully_missing() {
+        let mut collection = collection_with("memnite", 4, 4, 0);
+        let missing = process_deck("Ornithopter", 3, &"Affinity".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 3);
+    }
+
+    #[test]
+    fn owning_enough_copies_is_not_missing() {
+        let mut collection = collection_with("memnite", 4, 4, 0);
+        let missing = process_deck("Memnite", 4, &"Affinity".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 0);
+        assert_eq!(collection["memnite"].total_qty, 0);
+    }
+
+    #[test]
+    fn owning_some_copies_reports_the_shortage() {
+        let mut collection = collection_with("memnite", 1, 1, 0);
+        let missing = process_deck("Memnite", 4, &"Affinity".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 3);
+        assert_eq!(collection["memnite"].total_qty, 0);
+    }
+
+    #[test]
+    fn card_name_lookup_ignores_case() {
+        let mut collection = collection_with("memnite", 4, 4, 0);
+        let missing = process_deck("MEMNITE", 2, &"Affinity".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 0);
+    }
+
+    #[test]
+    fn decks_share_the_collection_in_order() {
+        let mut collection = collection_with("memnite", 4, 4, 0);
+        let first = process_deck("Memnite", 3, &"DeckA".to_string(), &mut collection, &foil_decks());
+        let second = process_deck("Memnite", 3, &"DeckB".to_string(), &mut collection, &foil_decks());
+        assert_eq!(first, 0);
+        assert_eq!(second, 2);
+    }
+
+    #[test]
+    fn foil_deck_counts_only_foil_copies() {
+        let mut collection = collection_with("memnite", 4, 3, 1);
+        let missing = process_deck("Memnite", 4, &"FoilDeck".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 3);
+    }
+
+    #[test]
+    fn foil_deck_uses_up_foil_and_total_copies() {
+        let mut collection = collection_with("memnite", 4, 2, 2);
+        let missing = process_deck("Memnite", 2, &"FoilDeck".to_string(), &mut collection, &foil_decks());
+        assert_eq!(missing, 0);
+        assert_eq!(collection["memnite"].foil_qty, 0);
+        assert_eq!(collection["memnite"].total_qty, 2);
+    }
+
+    #[test]
+    fn foil_deck_without_foils_leaves_regular_copies_available() {
+        let mut collection = collection_with("memnite", 4, 4, 0);
+        let foil_missing = process_deck("Memnite", 2, &"FoilDeck".to_string(), &mut collection, &foil_decks());
+        assert_eq!(foil_missing, 2);
+        assert_eq!(collection["memnite"].total_qty, 4);
+
+        let regular_missing = process_deck("Memnite", 4, &"RegularDeck".to_string(), &mut collection, &foil_decks());
+        assert_eq!(regular_missing, 0);
     }
 }
