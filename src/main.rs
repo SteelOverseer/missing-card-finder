@@ -82,8 +82,8 @@ fn report_deck(output_file: &mut File, format: &str, deck: &String, configuratio
 }
 
 fn load_deck_file<'a>(format: &'a str, deck: &String, deck_path: &String, excluded_cards: &Vec<String>) -> BTreeMap<String, u64> {
-    let file_path = format!("{}\\{}\\{}.dec", deck_path, format, deck);
-    let file = File::open(file_path).expect("Could not read file {file_path}");
+    let file_path = Path::new(deck_path).join(format).join(format!("{deck}.dec"));
+    let file = File::open(&file_path).unwrap_or_else(|err| panic!("Could not read file {}: {err}", file_path.display()));
     let reader = BufReader::new(file);
     let line_reg = Regex::new(r"^/").unwrap(); // .dec files have lines that start with /, i dont need these lines
     let quantity_reg = Regex::new(r"\d+").unwrap();
