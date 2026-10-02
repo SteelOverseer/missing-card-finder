@@ -1,4 +1,4 @@
-use std::{fs::{File, self}, io::{BufReader, BufRead, Write}, collections::HashMap, error::Error, process, path::Path};
+use std::{fs::{File, self}, io::{BufReader, BufRead, Write}, collections::{HashMap, BTreeMap}, error::Error, process, path::Path};
 use regex::Regex;
 use substring::Substring;
 mod configuration;
@@ -90,14 +90,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn load_deck_file<'a>(format: &'a str, deck: &String, deck_path: &String, excluded_cards: &Vec<String>) -> HashMap<String, u64> {
+fn load_deck_file<'a>(format: &'a str, deck: &String, deck_path: &String, excluded_cards: &Vec<String>) -> BTreeMap<String, u64> {
     let file_path = format!("{}\\{}\\{}.dec", deck_path, format, deck);
     let file = File::open(file_path).expect("Could not read file {file_path}");
     let reader = BufReader::new(file);
     let line_reg = Regex::new(r"^/").unwrap(); // .dec files have lines that start with /, i dont need these lines
     let quantity_reg = Regex::new(r"\d+").unwrap();
     let split_reg = Regex::new(r"/").unwrap();
-    let mut deck_contents:HashMap<String, u64> = HashMap::new();
+    let mut deck_contents:BTreeMap<String, u64> = BTreeMap::new();
 
     for line in reader.lines().map(|line| line.unwrap().to_string()) {
         if !line_reg.is_match(&line) {
@@ -184,7 +184,7 @@ fn load_collection_file(file_path: &str, contents: &mut HashMap<String, Collecti
     Ok(())
 }
 
-fn set_hash(card_name: String, quantity: u64, contents: &mut HashMap<String, u64>, excluded_cards: &Vec<String>) {
+fn set_hash(card_name: String, quantity: u64, contents: &mut BTreeMap<String, u64>, excluded_cards: &Vec<String>) {
     if excluded_cards.contains(&card_name.to_ascii_lowercase()) {
         return;
     }
