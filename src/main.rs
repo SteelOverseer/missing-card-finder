@@ -29,50 +29,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for format in &configuration.tracked_formats {
         writeln!(output_file, "/////////////////////////////////// {format} ///////////////////////////////////")?;
-        if format == "Commander" {
-            for deck in &configuration.tracked_commander_decks {
-                
-                if configuration.foil_decks.contains(&deck) {
-                    writeln!(output_file, "-------- {deck} ** FOIL ** --------")?;    
-                } else {
-                    writeln!(output_file, "-------- {deck} --------")?;
-                }
-                
-                let deck_contents = load_deck_file(format, deck, &configuration.decks_path, &excluded_cards);
-                for (card_name, quantity) in &deck_contents {
-                    let (needed_quantity, name) = process_deck(card_name, quantity, deck, &mut collection_contents, &configuration.foil_decks);
 
-                    if needed_quantity > 0 {
-                        writeln!(output_file, "{needed_quantity} {name}")?;
-                    }
-
-                    if configuration.debug {
-                        writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
-                    }
-                }
+        let decks = match format.as_str() {
+            "Commander" => &configuration.tracked_commander_decks,
+            "Modern" => &configuration.tracked_modern_decks,
+            _ => {
+                eprintln!("Unknown format in tracked_formats: {format}");
+                continue;
             }
-        } else if format == "Modern" {
-            for deck in &configuration.tracked_modern_decks {
-                
-                if configuration.foil_decks.contains(&deck) {
-                    writeln!(output_file, "-------- {deck} ** FOIL ** --------")?;    
-                } else {
-                    writeln!(output_file, "-------- {deck} --------")?;
-                }
+        };
 
-                let deck_contents = load_deck_file(format, deck, &configuration.decks_path, &excluded_cards);
-                for (card_name, quantity) in &deck_contents {
-                    let (needed_quantity, name) = process_deck(card_name, quantity, deck, &mut collection_contents, &configuration.foil_decks);
-
-                    if needed_quantity > 0 {
-                        writeln!(output_file, "{needed_quantity} {name}")?;
-                    }
-
-                    if configuration.debug {
-                        writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
-                    }
-                }
-            }
+        for deck in decks {
+            report_deck(&mut output_file, format, deck, &configuration, &excluded_cards, &mut collection_contents)?;
         }
     }
 
@@ -84,6 +52,29 @@ fn main() -> Result<(), Box<dyn Error>> {
             let reg = card_info.reg_qty;
 
             writeln!(output_file, "{cardname}: ALL {total}, FOIL {foil}, REG {reg}")?;
+        }
+    }
+
+    Ok(())
+}
+
+fn report_deck(output_file: &mut File, format: &str, deck: &String, configuration: &configuration::Settings, excluded_cards: &Vec<String>, collection_contents: &mut HashMap<String, CollectionCard>) -> Result<(), Box<dyn Error>> {
+    if configuration.foil_decks.contains(deck) {
+        writeln!(output_file, "-------- {deck} ** FOIL ** --------")?;
+    } else {
+        writeln!(output_file, "-------- {deck} --------")?;
+    }
+
+    let deck_contents = load_deck_file(format, deck, &configuration.decks_path, excluded_cards);
+    for (card_name, quantity) in &deck_contents {
+        let (needed_quantity, name) = process_deck(card_name, quantity, deck, collection_contents, &configuration.foil_decks);
+
+        if needed_quantity > 0 {
+            writeln!(output_file, "{needed_quantity} {name}")?;
+        }
+
+        if configuration.debug {
+            writeln!(output_file, "DEBUG-- cardname: {card_name}, quantity: {quantity}")?;
         }
     }
 
