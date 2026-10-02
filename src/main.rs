@@ -1,7 +1,7 @@
 use std::{fs::File, io::{BufReader, BufRead, Write}, collections::{HashMap, BTreeMap}, error::Error, process, path::Path};
 mod configuration;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct CollectionCard {
     total_qty: u64,
     reg_qty: u64,
@@ -170,13 +170,7 @@ fn load_collection_file(file_path: &str, contents: &mut HashMap<String, Collecti
         };
 
         if !excluded_cards.contains(&card_name) {
-            if contents.contains_key(&card_name) {
-                contents.get_mut(&card_name).unwrap().total_qty += total_quantity;
-                contents.get_mut(&card_name).unwrap().reg_qty += regular_quantity;
-                contents.get_mut(&card_name).unwrap().foil_qty += foil_quantity;
-            } else {
-                contents.insert(card_name, CollectionCard { total_qty: total_quantity, reg_qty: regular_quantity, foil_qty: foil_quantity });
-            }
+            add_to_collection(contents, card_name, total_quantity, regular_quantity, foil_quantity);
         }
     }
 
@@ -202,11 +196,15 @@ fn set_hash(card_name: String, quantity: u64, contents: &mut BTreeMap<String, u6
         return;
     }
 
-    if contents.contains_key(&card_name) {
-        *contents.get_mut(&card_name).unwrap() += quantity;
-    } else {
-        contents.insert(card_name, quantity);
-    }
+    *contents.entry(card_name).or_default() += quantity;
+}
+
+/// The same card can appear on several rows (different printings), so quantities are added together
+fn add_to_collection(contents: &mut HashMap<String, CollectionCard>, card_name: String, total_qty: u64, reg_qty: u64, foil_qty: u64) {
+    let card = contents.entry(card_name).or_default();
+    card.total_qty += total_qty;
+    card.reg_qty += reg_qty;
+    card.foil_qty += foil_qty;
 }
 
 #[cfg(test)]
@@ -329,5 +327,30 @@ mod tests {
     fn collection_record_that_is_too_short_is_rejected() {
         let record = csv::StringRecord::from(vec!["2", "1"]);
         assert_eq!(parse_collection_record(&record), None);
+    }
+
+    #[test]
+    fn same_card_in_a_deck_is_added_together() {
+        let mut deck = BTreeMap::new();
+        set_hash("Memnite".to_string(), 2, &mut deck, &vec![]);
+        set_hash("Memnite".to_string(), 1, &mut deck, &vec![]);
+        assert_eq!(deck["Memnite"], 3);
+    }
+
+    #[test]
+    fn excluded_card_is_not_added_to_a_deck() {
+        let mut deck = BTreeMap::new();
+        set_hash("Island".to_string(), 4, &mut deck, &vec!["island".to_string()]);
+        assert!(deck.is_empty());
+    }
+
+    #[test]
+    fn different_printings_are_merged_in_the_collection() {
+        let mut collection = HashMap::new();
+        add_to_collection(&mut collection, "memnite".to_string(), 2, 1, 1);
+        add_to_collection(&mut collection, "memnite".to_string(), 1, 1, 0);
+        assert_eq!(collection.len(), 1);
+        let card = &collection["memnite"];
+        assert_eq!((card.total_qty, card.reg_qty, card.foil_qty), (3, 2, 1));
     }
 }
