@@ -11,3 +11,8 @@ name = "missingcardfinder"
 csv = "1.1"
 config = "0.13.3"
 serde = "1.0.164"
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+predicates = "3"
